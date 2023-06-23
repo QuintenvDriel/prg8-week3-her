@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Include the p5.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.0.0/p5.min.js"></script>
+    <script defer src="app.js"></script>
+
+    <!-- Include the ml5.js library -->
+    <script src="https://unpkg.com/ml5@latest/dist/ml5.min.js"></script>
+    <style>
+        /* Set styles for HTML elements */
+        h2 {font-family: arial; text-align: center;}
+        .imageInput {width: 100%; text-align: center;}
+        .imageResult {font-family: arial; width: 100%; text-align: center; text-transform: uppercase;}
+        .uploadedImage {width: 50%; height: auto; margin-left: 25%;}
+    </style>
+</head>
+<body>
+    <h1>Hond of kat</h1>
+
+    <h2>Click "Choose File" to Add an Image</h2>
+    <button id="startButton">Opdracht</button>
+
+    <!-- Container for image classification result -->
+    <div class="imageResult" id="imageResult"></div>
+
+    <div class="imageInput">
+        <input type="file" oninput="loadImage(event)">
+    </div>
+
+    <!-- Container for the uploaded image -->
+    <img class="uploadedImage" id="uploadedImage" />
+
+    <script>
+        let synth = window.speechSynthesis;
+        const element = document.getElementById("imageResult");
+        const startGame = document.getElementById('startButton');
+
+        startGame.addEventListener('click', () => {
+            speak('Maak een foto van een hond of kat');
+        });
+
+        function loadImage(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function() {
+                const uploadedImage = document.getElementById("uploadedImage");
+                uploadedImage.src = reader.result;
+                startImageScan(uploadedImage);
+            }
+            reader.readAsDataURL(file);
+        }
+
+        function startImageScan(uploadedImage) {
+            const classifier = ml5.imageClassifier('./model.json', () => {
+                classifier.classify(uploadedImage, imageScanResult);
+                element.innerHTML = "...";
+            });
+        }
+
+        async function imageScanResult(error, results) {
+            if (error) {
+                element.innerHTML = error;
+            } else {
+                let num = await results[0].confidence * 100;
+                element.innerHTML = results[0].label + " Confidence: " + num.toFixed(0) + "%";
+                speak(results[0].label);
+            }
+        }
+
+        function speak(text) {
+            if (synth.speaking) {
+                console.log('Still speaking...');
+                return;
+            }
+            if (text !== '') {
+                let utterThis = new SpeechSynthesisUtterance(text);
+                synth.speak(utterThis);
+            }
+        }
+    </script>
+</body>
+</html>
